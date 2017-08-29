@@ -25,61 +25,64 @@
 
 	var settings = plugin.createSettings(pluginDescriptor.title, logo, pluginDescriptor.synopsis);
 
-	settings.createString("userLanguage", "Preferable audio track language", "uk", function (v) {
+	settings.createString("userLanguage", "Preferable audio track language", "ru", function (v) {
 		service.userLanguage = v;
 	});
 
 	var magnetTrackers = null;
 
-    settings.createString("trackers", "Additional tracker list to use", "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", function (v) {
-		try{
-			magnetTrackers = '&tr='+showtime.httpReq(v).toString().replace(/\n+/g, '&tr=');
-		}
-		catch (e) {
+	settings.createString("trackers", "Additional tracker list to use", "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt", function (v) {
+		try {
+			magnetTrackers = '&tr=' + showtime.httpReq(v).toString().replace(/\n+/g, '&tr=');
+		} catch (e) {
 
 		}
 	});
 
 	var urls = {
-		movies :'http://zsolr.zonasearch.com/solr/movie/select/?wt=json&',
-		torrents :'http://zsolr.zonasearch.com/solr/torrent/select/?wt=json&',
+		movies: 'http://zsolr.zonasearch.com/solr/movie/select/?wt=json&',
+		torrents: 'http://zsolr.zonasearch.com/solr/torrent/select/?wt=json&',
 	}
 
 	var blue = '6699CC',
-	orange = 'FFA500',
-	red = 'EE0000',
-	green = '008B45';
+		orange = 'FFA500',
+		red = 'EE0000',
+		green = '008B45';
 
 	function colorStr(str, color) {
 		return '<font color="' + color + '">' + str + '</font>';
 	}
 
-	function mapSearchResults(page, movies){
+
+	function coloredStr(str, color) {
+		return '<font color="' + color + '">' + str + '</font>';
+	}
+
+	function mapSearchResults(page, movies) {
 		for (var i = 0; i < movies.length; i++) {
 			var item = movies[i];
 			page.appendItem(plugin.getDescriptor().id + ":movie:" + item.id, "video", {
 				title: item.name_rus + '/' + item.name_original,
 				//icon: 'https://img4.zonapic.com/images/film_240/' + item.id.toString().substring(0, 3) + "/" + item.id + '.jpg',
 				description: item.description
-			}).bindVideoMetadata({title: (item.name_original ? item.name_original : item.name_rus)});
+			}).bindVideoMetadata({
+				title: (item.name_original ? item.name_original : item.name_rus)
+			});
 		}
 	}
 
-
-	function setPageHeader(page, title) {
-		if (page.metadata) {
-			page.metadata.title = title;
-			page.metadata.logo = logo;
-		}
+	function setPageHeader(page, title, icon) {
 		page.type = "directory";
 		page.contents = "items";
-		page.loading = false;
+		page.metadata.logo = logo;
+		page.metadata.icon = logo;
+		page.metadata.title = new showtime.RichText(title);
 	}
 
 	plugin.addURI(plugin.getDescriptor().id + ":start", function (page) {
 		setPageHeader(page, plugin.getDescriptor().synopsis);
 		page.loading = true;
-		var doc = showtime.httpReq(urls.movies+'q=(playable:true)AND(serial:false)AND(trailer:false)&rows=50&sort=popularity+desc').toString();
+		var doc = showtime.httpReq(urls.movies + 'q=(playable:true)AND(serial:false)AND(trailer:false)&rows=50&sort=popularity+desc').toString();
 		doc = showtime.JSONDecode(doc);
 		if (doc) {
 			mapSearchResults(page, doc.response.docs);
@@ -90,8 +93,8 @@
 	plugin.addURI(plugin.getDescriptor().id + ":movie:(.*)", function (page, id) {
 		setPageHeader(page, plugin.getDescriptor().synopsis);
 		page.loading = true;
-		var allLanguagesQuery = urls.torrents+ 'q=(kinopoisk_id:' + id + ')AND(playable:true)';
-		var doc = showtime.httpReq(allLanguagesQuery +'AND(languages_parser:*'+service.userLanguage+'*)').toString();
+		var allLanguagesQuery = urls.torrents + 'q=(kinopoisk_id:' + id + ')AND(playable:true)';
+		var doc = showtime.httpReq(allLanguagesQuery + 'AND(languages_parser:*' + service.userLanguage + '*)').toString();
 		doc = showtime.JSONDecode(doc);
 		if (doc.response.docs.length == 0) {
 			doc = showtime.httpReq(allLanguagesQuery).toString();
@@ -101,18 +104,19 @@
 		if (doc) {
 			var docs = doc.response.docs
 
-				for (var i = 0; i < docs.length; i++) {
-					var item = docs[i];
-					var magnetLink = item.torrent_download_link;
-					if(magnetTrackers!=null){
-						magnetLink+=magnetTrackers;
-					}
-					page.appendItem('torrent:browse:' + magnetLink, "video", {
-						title: item.resolution + '/' + Math.round(10 * item.size_bytes / (1024 * 1024 * 1024)) / 10 + 'Gb [' + item.languages_parser + '] ' + item.peers + '/' + item.seeds + ' ' + item.filenames,
-						icon: 'https://img4.zonapic.com/images/film_240/' + id.toString().substring(0, 3) + "/" + id + '.jpg',
-						description: item.description
-					});
+			for (var i = 0; i < docs.length; i++) {
+				var item = docs[i];
+				var magnetLink = item.torrent_download_link;
+				if (magnetTrackers != null) {
+					magnetLink += magnetTrackers;
 				}
+				page.appendItem( /*'torrent:browse:' + */ magnetLink, "directory", {
+					//title: (item.filenames.replace(/\[\"|\"\]/g,'')) + ' ' + item.resolution + '/' + Math.round(10 * item.size_bytes / (1024 * 1024 * 1024)) / 10 + 'Gb [' + item.languages_parser + '] ' + item.peers + '/' + item.seeds,
+					title: new showtime.RichText((item.filenames.replace(/\[\"|\"\]/g, '')) + ' ' + item.resolution + '/' + Math.round(10 * item.size_bytes / (1024 * 1024 * 1024)) / 10 + 'Gb [' + item.languages_parser + '] ' + '(' + coloredStr(item.seeds, green) + '/' + coloredStr(item.peers, red) + ') '),
+					icon: 'https://img4.zonapic.com/images/film_240/' + id.toString().substring(0, 3) + "/" + id + '.jpg',
+					description: item.description
+				});
+			}
 		}
 		page.loading = false;
 	});
@@ -120,7 +124,7 @@
 	plugin.addSearcher(plugin.getDescriptor().id, logo, function (page, query) {
 		page.entries = 0;
 		var fromPage = 0,
-		tryToSearch = true;
+			tryToSearch = true;
 
 		function loader() {
 			if (!tryToSearch)
@@ -129,15 +133,15 @@
 			query = query.split(' ')
 			var rusQuery = "";
 			var engQuery = "";
-			for(var i=0; i<query.length;query++){
+			for (var i = 0; i < query.length; query++) {
 				var queryWord = query[i];
-			    var encodedQueryWord = encodeURIComponent(queryWord);
-				if(i>0){
-					rusQuery+='AND';
-					engQuery+='AND';
+				var encodedQueryWord = encodeURIComponent(queryWord);
+				if (i > 0) {
+					rusQuery += 'AND';
+					engQuery += 'AND';
 				}
-				rusQuery+='(name_rus:' + encodedQueryWord + ')';
-				engQuery+='(name_original:' + encodedQueryWord + ')';
+				rusQuery += '(name_rus:' + encodedQueryWord + ')';
+				engQuery += '(name_original:' + encodedQueryWord + ')';
 			}
 			var doc = showtime.httpReq(urls.movies + 'q=((' + rusQuery + ')OR(' + engQuery + '))AND(playable:true)&rows=50&sort=gross+desc').toString();
 			console.log('search finished:' + doc);
@@ -145,7 +149,7 @@
 			doc = showtime.JSONDecode(doc);
 			if (doc) {
 				var docs = doc.response.docs;
-                mapSearchResults(page, docs);
+				mapSearchResults(page, docs);
 				page.entries = docs.length;
 			}
 
