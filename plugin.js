@@ -25,7 +25,7 @@
 
 	var settings = plugin.createSettings(pluginDescriptor.title, logo, pluginDescriptor.synopsis);
 
-	settings.createString("userLanguage", "Preferable audio track language", "ru", function (v) {
+	settings.createString("userLanguage", "Preferable audio track language", "uk", function (v) {
 		service.userLanguage = v;
 	});
 
@@ -144,7 +144,7 @@
 				engQuery += '(name_original:' + encodedQueryWord + ')';
 			}
 			var doc = showtime.httpReq(urls.movies + 'q=((' + rusQuery + ')OR(' + engQuery + '))AND(playable:true)&rows=50&sort=gross+desc').toString();
-			console.log('search finished:' + doc);
+			//console.log('search finished:' + doc);
 
 			doc = showtime.JSONDecode(doc);
 			if (doc) {
