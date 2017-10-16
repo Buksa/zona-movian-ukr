@@ -25,9 +25,9 @@
 
 	var settings = plugin.createSettings(pluginDescriptor.title, logo, pluginDescriptor.synopsis);
 
-	settings.createString("userLanguage", "Preferable audio track language", "uk", function (v) {
-		service.userLanguage = v;
-	});
+	// settings.createString("userLanguage", "Preferable audio track language", "uk", function (v) {
+	// 	service.userLanguage = v;
+	// });
 
 	var magnetTrackers = null;
 
@@ -94,7 +94,7 @@
 		setPageHeader(page, plugin.getDescriptor().synopsis);
 		page.loading = true;
 		var allLanguagesQuery = urls.torrents + 'q=(kinopoisk_id:' + id + ')AND(playable:true)';
-		var doc = showtime.httpReq(allLanguagesQuery + 'AND(languages_parser:*' + service.userLanguage + '*)').toString();
+		var doc = showtime.httpReq(allLanguagesQuery)// + 'AND(languages_parser:*' + service.userLanguage + '*)').toString();
 		doc = showtime.JSONDecode(doc);
 		if (doc.response.docs.length == 0) {
 			doc = showtime.httpReq(allLanguagesQuery).toString();
